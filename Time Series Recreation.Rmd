@@ -1,0 +1,78 @@
+---
+title: "Time Series Recreation"
+output: word_document
+---
+
+Read data from "A Little Book of R for Time Series" example.
+
+```{r}
+kings <- scan("http://robjhyndman.com/tsdldata/misc/kings.dat",skip=3)
+```
+
+Turn the df into a ts object.
+
+```{r}
+kingsts <- ts(kings)
+```
+
+Plot the data to get an idea of the structure.
+
+```{r}
+plot.ts(kingsts)
+```
+
+Import the TTR library and smooth out the data using a moving average since the data appears to be non-seasonal.
+
+```{r}
+library("TTR")
+kingstsSMA3 <- SMA(kingsts,n=3)
+plot.ts(kingstsSMA3)
+```
+
+Change the order to a higher order to smooth out the random fluctuations further.
+
+```{r}
+library("TTR")
+kingstsSMA8 <- SMA(kingsts,n=8)
+plot.ts(kingstsSMA8)
+```
+
+Change methods and use differencing.
+
+```{r}
+kingstsDiff1 <- diff(kingsts, differences = 1)
+plot.ts(kingstsDiff1)
+```
+
+This now shows us that the data is stationary and an ARIMA model can be applied.
+
+```{r}
+acf(kingstsDiff1, lag.max = 20)
+acf(kingstsDiff1, lag.max = 20, plot = FALSE)
+pacf(kingstsDiff1, lag.max = 20)
+pacf(kingstsDiff1, lag.max = 20, plot = FALSE)
+```
+
+Here we can see that we shoud use a Q of 1 or a P of 3. The principle of parsimony led the author's to choose the ARMA(0,1) model. Including the single differencing we come out to ARIMA(0,1,1).
+
+```{r}
+kingsArima011 <- arima(kingsts, order = c(0,1,1))
+kingsArima011
+```
+
+Import the "forecast" package and forecast then plot the ARIMA model's predictions.
+
+```{r}
+library("forecast")
+kingstsForecast <- forecast(kingsArima011, h=5)
+kingstsForecast
+autoplot(kingstsForecast)
+```
+
+The authors also plot the variance and residuals to determine if the errors or normally distributed with a mean of zero and constant variance. I am unable to run the plotForecastErrors function and cannot find documentation for it in the forecast package.
+
+```{r}
+plot.ts(kingstsForecast$residuals)
+#plotForecastErrors(kingstsForecast$residuals)
+```
+
